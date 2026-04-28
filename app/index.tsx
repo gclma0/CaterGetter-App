@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Platform, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -8,6 +8,13 @@ import { Colors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme
 
 export default function LandingScreen() {
   const router = useRouter();
+  const [apkUrl, setApkUrl] = useState('');
+
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      setApkUrl(`${window.location.origin}/CaterGetter.apk`);
+    }
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -49,7 +56,7 @@ export default function LandingScreen() {
         <View style={styles.downloadSection}>
           <Text style={styles.downloadText}>Get the best experience from the app!</Text>
           <Button 
-            label="Download CaterGetter" 
+            label="Download CaterGetter for Android" 
             variant="ghost"
             onPress={() => {
                if (Platform.OS === 'web') {
@@ -69,6 +76,18 @@ export default function LandingScreen() {
             }} 
             style={styles.downloadBtn}
           />
+          
+          {apkUrl ? (
+            <View style={styles.qrContainer}>
+              <Text style={styles.qrText}>Scan to download on your phone</Text>
+              <View style={styles.qrWrapper}>
+                <Image 
+                  source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(apkUrl)}` }} 
+                  style={{ width: 120, height: 120 }} 
+                />
+              </View>
+            </View>
+          ) : null}
         </View>
 
       </View>
@@ -143,5 +162,19 @@ const styles = StyleSheet.create({
   },
   downloadBtn: {
     minWidth: 240,
+  },
+  qrContainer: {
+    alignItems: 'center',
+    marginTop: Spacing.md,
+  },
+  qrText: {
+    fontSize: FontSize.xs,
+    color: Colors.textSecondary,
+    marginBottom: Spacing.sm,
+  },
+  qrWrapper: {
+    backgroundColor: Colors.white,
+    padding: Spacing.xs,
+    borderRadius: Radius.sm,
   }
 });
