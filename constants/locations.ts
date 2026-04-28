@@ -1,0 +1,98 @@
+export const BANGLADESH_LOCATIONS = [
+  // Dhaka Division
+  "Dhaka - Banani",
+  "Dhaka - Gulshan",
+  "Dhaka - Dhanmondi",
+  "Dhaka - Uttara",
+  "Dhaka - Mirpur",
+  "Dhaka - Bashundhara",
+  "Dhaka - Mohammadpur",
+  "Dhaka - Badda",
+  "Dhaka - Khilgaon",
+  "Dhaka - Motijheel",
+  "Dhaka - Malibagh",
+  "Dhaka - Wari",
+  "Dhaka - Old Dhaka",
+  "Faridpur",
+  "Gazipur",
+  "Gopalganj",
+  "Kishoreganj",
+  "Madaripur",
+  "Manikganj",
+  "Munshiganj",
+  "Narayanganj",
+  "Narsingdi",
+  "Rajbari",
+  "Shariatpur",
+  "Tangail",
+
+  // Chattogram Division
+  "Chattogram - Agrabad",
+  "Chattogram - GEC",
+  "Chattogram - Halishahar",
+  "Chattogram - Nasirabad",
+  "Chattogram - Khulshi",
+  "Chattogram - Patenga",
+  "Bandarban",
+  "Brahmanbaria",
+  "Chandpur",
+  "Cumilla",
+  "Cox's Bazar",
+  "Feni",
+  "Khagrachhari",
+  "Lakshmipur",
+  "Noakhali",
+  "Rangamati",
+
+  // Rajshahi Division
+  "Rajshahi",
+  "Bogura",
+  "Chapai Nawabganj",
+  "Joypurhat",
+  "Naogaon",
+  "Natore",
+  "Pabna",
+  "Sirajganj",
+
+  // Khulna Division
+  "Khulna",
+  "Bagerhat",
+  "Chuadanga",
+  "Jashore",
+  "Jhenaidah",
+  "Kushtia",
+  "Magura",
+  "Meherpur",
+  "Narail",
+  "Satkhira",
+
+  // Barishal Division
+  "Barishal",
+  "Barguna",
+  "Bhola",
+  "Jhalokati",
+  "Patuakhali",
+  "Pirojpur",
+
+  // Sylhet Division
+  "Sylhet",
+  "Habiganj",
+  "Moulvibazar",
+  "Sunamganj",
+
+  // Rangpur Division
+  "Rangpur",
+  "Dinajpur",
+  "Gaibandha",
+  "Kurigram",
+  "Lalmonirhat",
+  "Nilphamari",
+  "Panchagarh",
+  "Thakurgaon",
+
+  // Mymensingh Division
+  "Mymensingh",
+  "Jamalpur",
+  "Netrokona",
+  "Sherpur"
+];
