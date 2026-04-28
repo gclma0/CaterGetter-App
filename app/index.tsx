@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   actionSection: {
     width: '100%',
     gap: Spacing.md,
-    marginBottom: Spacing.xxxl,
+    marginBottom: Spacing.xxl,
   },
   btn: {
     marginBottom: Spacing.sm,

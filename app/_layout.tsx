@@ -13,7 +13,7 @@ function RootLayoutNav() {
     if (loading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
-    const isIndex = segments.length === 0 || segments[0] === 'index';
+    const isIndex = (segments.length as number) === 0 || (segments[0] as string) === 'index';
     const inCustomer = segments[0] === '(customer)';
     const inVendor = segments[0] === '(vendor)';
 
