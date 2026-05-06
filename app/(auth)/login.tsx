@@ -12,12 +12,15 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/lib/auth';
+import { useLanguage } from '@/lib/i18n';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import LanguageSwitch from '@/components/ui/LanguageSwitch';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
 
   const [email, setEmail] = useState('');
@@ -27,9 +30,9 @@ export default function LoginScreen() {
 
   const validate = () => {
     const newErrors: typeof errors = {};
-    if (!email.trim()) newErrors.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Enter a valid email';
-    if (!password) newErrors.password = 'Password is required';
+    if (!email.trim()) newErrors.email = t.emailRequired;
+    else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = t.enterValidEmail;
+    if (!password) newErrors.password = t.passwordRequired;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -39,7 +42,7 @@ export default function LoginScreen() {
     setLoading(true);
     const { error } = await signIn(email.trim(), password);
     setLoading(false);
-    if (error) Alert.alert('Login Failed', error);
+    if (error) Alert.alert(t.loginFailed, error);
   };
 
   return (
@@ -48,23 +51,28 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        {/* Language Switch */}
+        <View style={styles.langRow}>
+          <LanguageSwitch />
+        </View>
+
         {/* Hero */}
         <View style={styles.hero}>
           <View style={styles.logoCircle}>
             <Ionicons name="restaurant" size={38} color={Colors.primary} />
           </View>
           <Text style={styles.appName}>CaterApp</Text>
-          <Text style={styles.tagline}>Your favourite caterers, one tap away</Text>
+          <Text style={styles.tagline}>{t.yourFavouriteCaterers}</Text>
         </View>
 
         {/* Form */}
         <View style={styles.form}>
-          <Text style={styles.title}>Welcome back</Text>
-          <Text style={styles.subtitle}>Sign in to continue</Text>
+          <Text style={styles.title}>{t.welcomeBack}</Text>
+          <Text style={styles.subtitle}>{t.signInToContinue}</Text>
 
           <Input
-            label="Email"
-            placeholder="you@example.com"
+            label={t.email}
+            placeholder={t.emailPlaceholder}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -73,8 +81,8 @@ export default function LoginScreen() {
             error={errors.email}
           />
           <Input
-            label="Password"
-            placeholder="Your password"
+            label={t.password}
+            placeholder={t.passwordPlaceholder}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -83,7 +91,7 @@ export default function LoginScreen() {
           />
 
           <Button
-            label="Sign In"
+            label={t.signIn}
             onPress={handleLogin}
             loading={loading}
             fullWidth
@@ -93,7 +101,7 @@ export default function LoginScreen() {
 
           <View style={styles.divider}>
             <View style={styles.line} />
-            <Text style={styles.dividerText}>or</Text>
+            <Text style={styles.dividerText}>{t.orDivider}</Text>
             <View style={styles.line} />
           </View>
 
@@ -102,8 +110,8 @@ export default function LoginScreen() {
             onPress={() => router.push('/(auth)/register')}
           >
             <Text style={styles.registerText}>
-              Don't have an account?{' '}
-              <Text style={styles.registerLink}>Create one</Text>
+              {t.noAccount}{' '}
+              <Text style={styles.registerLink}>{t.createOne}</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -115,6 +123,8 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   scroll: { flexGrow: 1, padding: Spacing.lg, justifyContent: 'center', minHeight: '100%' },
+
+  langRow: { alignItems: 'flex-end', marginBottom: Spacing.md },
 
   hero: { alignItems: 'center', marginBottom: Spacing.xxl },
   logoCircle: {
@@ -138,6 +148,7 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textMuted,
     marginTop: Spacing.xs,
+    textAlign: 'center',
   },
 
   form: {

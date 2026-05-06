@@ -6,6 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { useCartStore } from '@/hooks/useCart';
@@ -21,9 +22,13 @@ export default function CheckoutScreen() {
   const router = useRouter();
 
   const [eventDate, setEventDate] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [dateObj, setDateObj] = useState(new Date());
+
   const [guestCount, setGuestCount] = useState('');
   const [eventType, setEventType] = useState('');
   const [specialRequests, setSpecialRequests] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online'>('cod');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -68,10 +73,22 @@ export default function CheckoutScreen() {
     return Object.keys(e).length === 0;
   };
 
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    const currentDate = selectedDate || dateObj;
+    setShowDatePicker(Platform.OS === 'ios');
+    setDateObj(currentDate);
+    
+    // Format to YYYY-MM-DD
+    const yyyy = currentDate.getFullYear();
+    const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(currentDate.getDate()).padStart(2, '0');
+    setEventDate(`${yyyy}-${mm}-${dd}`);
+  };
+
   const handleConfirm = async () => {
     if (!validate() || !user) return;
     setLoading(true);
-    const { error } = await supabase.from('bookings').insert({
+    const { data, error } = await supabase.from('bookings').insert({
       customer_id: user.id,
       vendor_id: item.vendorId,
       package_id: item.packageId,
@@ -80,18 +97,31 @@ export default function CheckoutScreen() {
       event_type: eventType,
       special_requests: specialRequests.trim() || null,
       total_price: totalPrice,
+      payment_method: paymentMethod,
       status: 'pending',
-    });
+    }).select('id').single();
+
     setLoading(false);
     if (error) {
       Alert.alert('Booking Failed', error.message);
-    } else {
+    } else if (data) {
       clearItem();
-      Alert.alert(
-        '🎉 Booking Sent!',
-        'Your request has been submitted. The caterer will confirm shortly.',
-        [{ text: 'View My Bookings', onPress: () => router.replace('/(customer)/cart') }]
-      );
+      if (paymentMethod === 'online') {
+        // Navigate directly to payment screen for prepaid
+        router.replace(`/(customer)/payment/${data.id}?amount=${totalPrice}` as any);
+      } else {
+        // COD goes straight to cart
+        if (Platform.OS === 'web') {
+          window.alert('Booking Confirmed! You can pay in cash upon delivery.');
+          router.replace('/(customer)/cart');
+        } else {
+          Alert.alert(
+            '🎉 Booking Sent!',
+            'Your booking has been placed. You can pay in cash upon delivery.',
+            [{ text: 'View My Bookings', onPress: () => router.replace('/(customer)/cart') }]
+          );
+        }
+      }
     }
   };
 
@@ -147,15 +177,45 @@ export default function CheckoutScreen() {
           <View style={styles.form}>
             <Text style={styles.formTitle}>Event Details</Text>
 
-            <Input
-              label="Event Date (YYYY-MM-DD)"
-              placeholder="e.g. 2025-12-25"
-              value={eventDate}
-              onChangeText={setEventDate}
-              keyboardType="numeric"
-              leftIcon="calendar-outline"
-              error={errors.eventDate}
-            />
+            {Platform.OS === 'web' ? (
+              <Input
+                label="Event Date"
+                placeholder="YYYY-MM-DD"
+                value={eventDate}
+                onChangeText={setEventDate}
+                leftIcon="calendar-outline"
+                error={errors.eventDate}
+                isDate
+              />
+            ) : (
+              <>
+                <TouchableOpacity onPress={() => setShowDatePicker(true)} activeOpacity={0.8}>
+                  <View pointerEvents="none">
+                    <Input
+                      label="Event Date"
+                      placeholder="Select Date"
+                      value={eventDate}
+                      onChangeText={setEventDate}
+                      leftIcon="calendar-outline"
+                      error={errors.eventDate}
+                      editable={false}
+                    />
+                  </View>
+                </TouchableOpacity>
+
+                {showDatePicker && (
+                  <DateTimePicker
+                    testID="dateTimePicker"
+                    value={dateObj}
+                    mode="date"
+                    is24Hour={true}
+                    display="default"
+                    onChange={onDateChange}
+                    minimumDate={new Date()}
+                  />
+                )}
+              </>
+            )}
 
             <Input
               label={isPerPerson ? `Number of Guests (min ${item.minGuests})` : 'Number of Guests'}
@@ -191,6 +251,30 @@ export default function CheckoutScreen() {
               numberOfLines={4}
               leftIcon="chatbubble-outline"
             />
+
+            {/* Payment Method */}
+            <Text style={[styles.fieldLabel, { marginTop: Spacing.sm }]}>Payment Method</Text>
+            <View style={styles.methodRow}>
+              <TouchableOpacity
+                style={[styles.paymentBtn, paymentMethod === 'cod' && styles.paymentBtnActive]}
+                onPress={() => setPaymentMethod('cod')}
+              >
+                <Ionicons name="cash-outline" size={20} color={paymentMethod === 'cod' ? Colors.primary : Colors.textMuted} />
+                <Text style={[styles.paymentBtnTxt, paymentMethod === 'cod' && styles.paymentBtnTxtActive]}>Cash on Delivery</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.paymentBtn, paymentMethod === 'online' && styles.paymentBtnActive]}
+                onPress={() => setPaymentMethod('online')}
+              >
+                <Ionicons name="card-outline" size={20} color={paymentMethod === 'online' ? Colors.primary : Colors.textMuted} />
+                <Text style={[styles.paymentBtnTxt, paymentMethod === 'online' && styles.paymentBtnTxtActive]}>Pay Online</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.paymentHint}>
+              {paymentMethod === 'cod' 
+                ? 'Pay the caterer directly in cash on the day of the event.' 
+                : 'Prepay securely online. If the caterer rejects, you will be automatically refunded.'}
+            </Text>
           </View>
 
           {/* Live Price Calculation */}
@@ -262,6 +346,16 @@ const styles = StyleSheet.create({
   pillActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryMuted },
   pillTxt: { color: Colors.textMuted, fontSize: FontSize.sm },
   pillTxtActive: { color: Colors.primary, fontWeight: FontWeight.medium },
+  methodRow: { flexDirection: 'row', gap: Spacing.md, marginBottom: Spacing.xs },
+  paymentBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: Spacing.sm,
+    paddingVertical: Spacing.md, borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.surfaceBorder,
+    backgroundColor: Colors.surface,
+  },
+  paymentBtnActive: { borderColor: Colors.primary, backgroundColor: Colors.surfaceElevated },
+  paymentBtnTxt: { fontSize: FontSize.sm, color: Colors.textMuted, fontWeight: FontWeight.medium },
+  paymentBtnTxtActive: { color: Colors.primary, fontWeight: FontWeight.bold },
+  paymentHint: { fontSize: FontSize.xs, color: Colors.textMuted, marginTop: Spacing.xs, fontStyle: 'italic' },
   totalCard: {
     backgroundColor: Colors.primaryMuted, borderRadius: Radius.xl,
     borderWidth: 1, borderColor: Colors.primary,

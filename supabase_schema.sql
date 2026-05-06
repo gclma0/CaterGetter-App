@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS public.vendors (
   cuisine_types text[] DEFAULT '{}',
   categories text[] DEFAULT '{}',
   location text,
+  latitude numeric(9,6),
+  longitude numeric(9,6),
   rating numeric(3,1) DEFAULT 5.0,
   total_reviews int DEFAULT 0,
   is_approved boolean DEFAULT false,
@@ -50,6 +52,10 @@ ALTER TABLE public.packages ADD COLUMN IF NOT EXISTS price_per_person numeric;
 -- Add photo_urls to vendors if upgrading
 ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS photo_urls text[] DEFAULT '{}';
 
+-- Add latitude/longitude if upgrading existing schema
+ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS latitude numeric(9,6);
+ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS longitude numeric(9,6);
+
 -- 4. BOOKINGS
 CREATE TABLE IF NOT EXISTS public.bookings (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -61,9 +67,17 @@ CREATE TABLE IF NOT EXISTS public.bookings (
   event_type text,
   special_requests text,
   status text CHECK (status IN ('pending','accepted','rejected','cancelled','completed')) DEFAULT 'pending',
+  payment_status text CHECK (payment_status IN ('unpaid','paid','refunded')) DEFAULT 'unpaid',
+  payment_method text CHECK (payment_method IN ('cod','online')) DEFAULT 'cod',
   total_price numeric,
   created_at timestamptz DEFAULT now()
 );
+
+-- Add payment_status if upgrading existing schema
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS payment_status text DEFAULT 'unpaid';
+
+-- Add payment_method if upgrading existing schema
+ALTER TABLE public.bookings ADD COLUMN IF NOT EXISTS payment_method text DEFAULT 'cod';
 
 -- 5. REVIEWS
 CREATE TABLE IF NOT EXISTS public.reviews (

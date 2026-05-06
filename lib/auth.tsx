@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { router } from 'expo-router';
+import { Platform } from 'react-native';
 
 export type UserRole = 'customer' | 'vendor' | 'admin';
 
@@ -167,10 +169,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    setProfile(null);
-    setSession(null);
-    setUser(null);
-    await supabase.auth.signOut();
+    try {
+      // 'local' scope: destroys the local session instantly without waiting for the server
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (e) {
+      console.warn('Sign out error:', e);
+    } finally {
+      setProfile(null);
+      setSession(null);
+      setUser(null);
+      
+      // Force clear local storage on Web to prevent lingering sessions
+      if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+        localStorage.clear();
+        window.location.href = '/';
+      } else {
+        router.replace('/');
+      }
+    }
   };
 
   return (

@@ -4,10 +4,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '@/components/ui/Button';
+import LanguageSwitch from '@/components/ui/LanguageSwitch';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
+import { useLanguage } from '@/lib/i18n';
 
 export default function LandingScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [apkUrl, setApkUrl] = useState('');
 
   useEffect(() => {
@@ -19,34 +22,37 @@ export default function LandingScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.root}>
-        
+
+        {/* Language Switch top-right */}
+        <View style={styles.langRow}>
+          <LanguageSwitch />
+        </View>
+
         {/* Top Section - Logo / Hero */}
         <View style={styles.heroSection}>
           <View style={styles.iconContainer}>
             <Ionicons name="restaurant" size={64} color={Colors.primary} />
           </View>
           <Text style={styles.title}>
-            Welcome to <Text style={styles.highlight}>CaterGetter</Text>
+            {t.welcomeTo} <Text style={styles.highlight}>CaterGetter</Text>
           </Text>
-          <Text style={styles.subtitle}>
-            Planned an event but wondering about cater? Get the caters of your choice here!
-          </Text>
+          <Text style={styles.subtitle}>{t.appTagline}</Text>
         </View>
 
         {/* Auth Buttons */}
         <View style={styles.actionSection}>
-          <Button 
-            label="Sign In" 
-            onPress={() => router.push('/(auth)/login')} 
-            fullWidth 
+          <Button
+            label={t.signIn}
+            onPress={() => router.push('/(auth)/login')}
+            fullWidth
             size="lg"
             style={styles.btn}
           />
-          <Button 
-            label="Sign Up" 
+          <Button
+            label={t.signUp}
             variant="secondary"
-            onPress={() => router.push('/(auth)/register')} 
-            fullWidth 
+            onPress={() => router.push('/(auth)/register')}
+            fullWidth
             size="lg"
             style={styles.btn}
           />
@@ -54,9 +60,9 @@ export default function LandingScreen() {
 
         {/* Bottom Section - Download App */}
         <View style={styles.downloadSection}>
-          <Text style={styles.downloadText}>Get the best experience from the app!</Text>
-          <Button 
-            label="Download CaterGetter for Android" 
+          <Text style={styles.downloadText}>{t.getBestExperience}</Text>
+          <Button
+            label={t.downloadForAndroid}
             variant="ghost"
             onPress={() => {
                if (Platform.OS === 'web') {
@@ -73,17 +79,17 @@ export default function LandingScreen() {
                } else {
                  alert('You are already using the best experience!');
                }
-            }} 
+            }}
             style={styles.downloadBtn}
           />
-          
+
           {apkUrl ? (
             <View style={styles.qrContainer}>
-              <Text style={styles.qrText}>Scan to download on your phone</Text>
+              <Text style={styles.qrText}>{t.scanToDownload}</Text>
               <View style={styles.qrWrapper}>
-                <Image 
-                  source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(apkUrl)}` }} 
-                  style={{ width: 120, height: 120 }} 
+                <Image
+                  source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(apkUrl)}` }}
+                  style={{ width: 120, height: 120 }}
                 />
               </View>
             </View>
@@ -97,11 +103,16 @@ export default function LandingScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
-  root: { 
-    flex: 1, 
-    padding: Spacing.xl, 
+  root: {
+    flex: 1,
+    padding: Spacing.xl,
     justifyContent: 'space-between',
     alignItems: 'center'
+  },
+  langRow: {
+    width: '100%',
+    alignItems: 'flex-end',
+    marginBottom: Spacing.sm,
   },
   heroSection: {
     flex: 1,

@@ -40,7 +40,8 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -51,6 +52,12 @@
       "eas": {
         "projectId": "5212e4d1-a886-46dd-86c2-7e9a4709e8c0"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/5212e4d1-a886-46dd-86c2-7e9a4709e8c0"
     }
   }
 }

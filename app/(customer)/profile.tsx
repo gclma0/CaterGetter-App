@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/lib/auth';
+import { useLanguage } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
@@ -20,6 +21,7 @@ import { Colors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme
 
 export default function CustomerProfileScreen() {
   const { profile, user, signOut, refreshProfile } = useAuth();
+  const { t } = useLanguage();
 
   const [editing, setEditing] = useState(false);
   const [fullName, setFullName] = useState(profile?.full_name ?? '');
@@ -35,7 +37,7 @@ export default function CustomerProfileScreen() {
     setSaving(false);
     if (error) {
       if (Platform.OS === 'web') window.alert(error.message);
-      else Alert.alert('Error', error.message);
+      else Alert.alert(t.error, error.message);
     } else {
       await refreshProfile();
       setEditing(false);
@@ -44,24 +46,32 @@ export default function CustomerProfileScreen() {
 
   const handleSignOut = () => {
     if (Platform.OS === 'web') {
-      // Alert.alert callbacks are unreliable on web
-      if (typeof window !== 'undefined' && window.confirm('Are you sure you want to sign out?')) {
-        signOut();
+      if (typeof window !== 'undefined' && window.confirm(t.signOutConfirm)) {
+        // Directly wipe all storage and hard-reload to the landing page.
+        // This bypasses any async timing issues with the Supabase client.
+        try { window.localStorage.clear(); } catch (_) {}
+        try { window.sessionStorage.clear(); } catch (_) {}
+        window.location.replace('/');
       }
     } else {
-      Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign Out', style: 'destructive', onPress: () => signOut() },
+      Alert.alert(t.signOut, t.signOutConfirm, [
+        { text: t.cancel, style: 'cancel' },
+        { text: t.signOut, style: 'destructive', onPress: () => signOut() },
       ]);
     }
   };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView style={styles.root} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.root} 
+        contentContainerStyle={styles.scroll} 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.screenTitle}>Profile</Text>
+          <Text style={styles.screenTitle}>{t.profile}</Text>
           <TouchableOpacity onPress={handleSignOut} style={styles.signOutBtn}>
             <Ionicons name="log-out-outline" size={22} color={Colors.danger} />
           </TouchableOpacity>
@@ -70,11 +80,11 @@ export default function CustomerProfileScreen() {
         {/* Avatar Section */}
         <View style={styles.avatarSection}>
           <Avatar uri={profile?.avatar_url} name={profile?.full_name} size={88} />
-          <Text style={styles.name}>{profile?.full_name ?? 'Customer'}</Text>
+          <Text style={styles.name}>{profile?.full_name ?? t.customer}</Text>
           <Text style={styles.email}>{user?.email}</Text>
           <View style={styles.roleBadge}>
             <Ionicons name="person-outline" size={13} color={Colors.primary} />
-            <Text style={styles.roleText}>Customer</Text>
+            <Text style={styles.roleText}>{t.customer}</Text>
           </View>
         </View>
 
@@ -83,7 +93,7 @@ export default function CustomerProfileScreen() {
           <View style={styles.infoRow}>
             <Ionicons name="mail-outline" size={18} color={Colors.textMuted} />
             <View style={{ flex: 1 }}>
-              <Text style={styles.infoLabel}>Email</Text>
+              <Text style={styles.infoLabel}>{t.emailLabel}</Text>
               <Text style={styles.infoValue}>{user?.email}</Text>
             </View>
           </View>
@@ -93,13 +103,13 @@ export default function CustomerProfileScreen() {
           {editing ? (
             <>
               <Input
-                label="Full Name"
+                label={t.fullNameLabel}
                 value={fullName}
                 onChangeText={setFullName}
                 leftIcon="person-outline"
               />
               <Input
-                label="Phone Number"
+                label={t.phoneLabel}
                 value={phone}
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
@@ -108,7 +118,7 @@ export default function CustomerProfileScreen() {
               />
               <View style={styles.editActions}>
                 <Button
-                  label="Cancel"
+                  label={t.cancel}
                   variant="secondary"
                   onPress={() => {
                     setFullName(profile?.full_name ?? '');
@@ -118,7 +128,7 @@ export default function CustomerProfileScreen() {
                   style={{ flex: 1 }}
                 />
                 <Button
-                  label="Save"
+                  label={t.save}
                   onPress={handleSave}
                   loading={saving}
                   style={{ flex: 1 }}
@@ -130,7 +140,7 @@ export default function CustomerProfileScreen() {
               <View style={styles.infoRow}>
                 <Ionicons name="person-outline" size={18} color={Colors.textMuted} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.infoLabel}>Full Name</Text>
+                  <Text style={styles.infoLabel}>{t.fullNameLabel}</Text>
                   <Text style={styles.infoValue}>{profile?.full_name ?? '—'}</Text>
                 </View>
               </View>
@@ -138,21 +148,21 @@ export default function CustomerProfileScreen() {
               <View style={styles.infoRow}>
                 <Ionicons name="call-outline" size={18} color={Colors.textMuted} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.infoLabel}>Phone</Text>
+                  <Text style={styles.infoLabel}>{t.phoneLabel}</Text>
                   <Text style={styles.infoValue}>{profile?.phone ?? '—'}</Text>
                 </View>
               </View>
               <View style={styles.separator} />
               <TouchableOpacity style={styles.editBtn} onPress={() => setEditing(true)}>
                 <Ionicons name="pencil-outline" size={16} color={Colors.primary} />
-                <Text style={styles.editBtnText}>Edit Profile</Text>
+                <Text style={styles.editBtnText}>{t.editProfile}</Text>
               </TouchableOpacity>
             </>
           )}
         </Card>
 
         <Button
-          label="Sign Out"
+          label={t.signOut}
           variant="danger"
           onPress={handleSignOut}
           fullWidth

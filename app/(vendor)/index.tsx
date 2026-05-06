@@ -7,8 +7,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
+import { useLanguage } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import Badge from '@/components/ui/Badge';
+import LanguageSwitch from '@/components/ui/LanguageSwitch';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
 
 interface StatsData {
@@ -35,6 +37,7 @@ function StatCard({ label, value, icon, color, sub }: { label: string; value: st
 
 export default function VendorDashboard() {
   const { user, profile } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const [stats, setStats] = useState<StatsData>({ total: 0, pending: 0, accepted: 0, completed: 0, revenue: 0 });
   const [newRequests, setNewRequests] = useState<RecentBooking[]>([]);
@@ -81,15 +84,18 @@ export default function VendorDashboard() {
       >
         {/* Header */}
         <View style={styles.headerRow}>
-          <View>
-            <Text style={styles.greeting}>Dashboard 🍽️</Text>
-            <Text style={styles.bizName}>{profile?.full_name}</Text>
+          <View style={styles.headerLeft}>
+            <Text style={styles.greeting}>{t.hello},</Text>
+            <Text style={styles.bizName}>{profile?.full_name?.split(' ')[0] ?? t.foodie} 🍽️</Text>
           </View>
-          {stats.pending > 0 && (
-            <View style={styles.alertBadge}>
-              <Text style={styles.alertTxt}>{stats.pending} new</Text>
-            </View>
-          )}
+          <View style={styles.headerRight}>
+            <LanguageSwitch />
+            {stats.pending > 0 && (
+              <View style={styles.alertBadge}>
+                <Text style={styles.alertTxt}>{stats.pending} new</Text>
+              </View>
+            )}
+          </View>
         </View>
 
         {loading ? (
@@ -98,10 +104,10 @@ export default function VendorDashboard() {
           <>
             {/* Stats */}
             <View style={styles.statsGrid}>
-              <StatCard label="Total Bookings" value={String(stats.total)} icon="list-outline" color={Colors.info} />
-              <StatCard label="Pending" value={String(stats.pending)} icon="time-outline" color={Colors.warning} sub={stats.pending > 0 ? 'Needs action' : undefined} />
-              <StatCard label="Accepted" value={String(stats.accepted)} icon="checkmark-circle-outline" color={Colors.success} />
-              <StatCard label="Revenue" value={`৳${stats.revenue.toLocaleString()}`} icon="cash-outline" color={Colors.primary} sub={`${stats.completed} completed`} />
+              <StatCard label={t.totalBookings} value={String(stats.total)} icon="list-outline" color={Colors.info} />
+              <StatCard label={t.pendingBookings} value={String(stats.pending)} icon="time-outline" color={Colors.warning} sub={stats.pending > 0 ? 'Needs action' : undefined} />
+              <StatCard label={t.confirmedBookings} value={String(stats.accepted)} icon="checkmark-circle-outline" color={Colors.success} />
+              <StatCard label={t.totalRevenue} value={`৳${stats.revenue.toLocaleString()}`} icon="cash-outline" color={Colors.primary} sub={`${stats.completed} completed`} />
             </View>
 
             {/* New Booking Requests */}
@@ -110,7 +116,7 @@ export default function VendorDashboard() {
                 <View style={styles.sectionRow}>
                   <Text style={styles.sectionTitle}>🔔 New Requests</Text>
                   <TouchableOpacity onPress={() => router.push('/(vendor)/bookings')}>
-                    <Text style={styles.seeAll}>See all</Text>
+                    <Text style={styles.seeAll}>{t.viewAll}</Text>
                   </TouchableOpacity>
                 </View>
                 {newRequests.map((b) => (
@@ -134,7 +140,7 @@ export default function VendorDashboard() {
             {stats.total === 0 && (
               <View style={styles.empty}>
                 <Ionicons name="calendar-outline" size={60} color={Colors.textMuted} />
-                <Text style={styles.emptyTitle}>No bookings yet</Text>
+                <Text style={styles.emptyTitle}>{t.noBookingsVendor}</Text>
                 <Text style={styles.emptySub}>Add packages to your menu so customers can book you!</Text>
               </View>
             )}
@@ -180,7 +186,9 @@ function BookingRow({ booking: b, onPress, showCountdown, today }: {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
   scroll: { padding: Spacing.lg },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: Spacing.lg },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.lg },
+  headerLeft: { flex: 1 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   greeting: { fontSize: FontSize.sm, color: Colors.textMuted },
   bizName: { fontSize: FontSize.xxl, fontWeight: FontWeight.bold, color: Colors.text },
   alertBadge: { backgroundColor: Colors.warning, paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: Radius.full },

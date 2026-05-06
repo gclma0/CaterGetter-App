@@ -1,4 +1,5 @@
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { LanguageProvider } from '@/lib/i18n';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
@@ -18,20 +19,19 @@ function RootLayoutNav() {
     const inVendor = segments[0] === '(vendor)';
 
     if (!session) {
-      // Not logged in → go to landing page
-      if (!inAuthGroup && !isIndex) router.replace('/');
+      // Not logged in → always go to landing page
+      if (inCustomer || inVendor || inAuthGroup) router.replace('/');
+      else if (!isIndex) router.replace('/');
     } else if (profile) {
-      // Logged in with profile → route by role
+      // Logged in with a complete profile → route by role
       if (profile.role === 'vendor') {
         if (!inVendor) router.replace('/(vendor)');
       } else {
         if (!inCustomer) router.replace('/(customer)');
       }
-    } else {
-      // Session exists but no profile row (e.g. registered before schema was ready)
-      // Default to customer home — they can still use the app
-      if (!inCustomer && !inVendor) router.replace('/(customer)');
     }
+    // If session exists but profile is null, wait — don't redirect anywhere
+    // (profile loading may still be in progress)
   }, [session, profile, loading]);
 
   return (
@@ -49,8 +49,10 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <RootLayoutNav />
-    </AuthProvider>
+    <LanguageProvider>
+      <AuthProvider>
+        <RootLayoutNav />
+      </AuthProvider>
+    </LanguageProvider>
   );
 }

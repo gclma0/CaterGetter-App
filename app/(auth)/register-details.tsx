@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/lib/auth';
+import { useLanguage } from '@/lib/i18n';
 import { getPendingRegister } from './register';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
@@ -23,6 +24,7 @@ const CATEGORY_OPTIONS = ['Wedding', 'Birthday', 'Corporate', 'Home Party', 'Out
 export default function RegisterDetailsScreen() {
   const { signUp } = useAuth();
   const router = useRouter();
+  const { t } = useLanguage();
   const pending = getPendingRegister();
 
   const [fullName, setFullName] = useState('');
@@ -43,9 +45,9 @@ export default function RegisterDetailsScreen() {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!fullName.trim()) e.fullName = 'Full name is required';
-    if (!phone.trim()) e.phone = 'Phone number is required';
-    if (isVendor && !businessName.trim()) e.businessName = 'Business name is required';
+    if (!fullName.trim()) e.fullName = t.fullNameRequired;
+    if (!phone.trim()) e.phone = t.phoneRequired;
+    if (isVendor && !businessName.trim()) e.businessName = t.businessNameRequired;
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -63,7 +65,7 @@ export default function RegisterDetailsScreen() {
     );
     setLoading(false);
     if (error) {
-      Alert.alert('Registration Failed', error);
+      Alert.alert(t.registrationFailed, error);
     }
     // Auth listener in _layout will redirect automatically
   };
@@ -79,22 +81,22 @@ export default function RegisterDetailsScreen() {
         </TouchableOpacity>
 
         <View style={styles.header}>
-          <Text style={styles.title}>{isVendor ? 'Business Details' : 'Your Details'}</Text>
-          <Text style={styles.subtitle}>Step 2 of 2 — Personal info</Text>
+          <Text style={styles.title}>{isVendor ? t.businessDetails : t.yourDetails}</Text>
+          <Text style={styles.subtitle}>{t.step2of2}</Text>
         </View>
 
         <View style={styles.form}>
           <Input
-            label="Full Name"
-            placeholder="John Doe"
+            label={t.fullName}
+            placeholder={t.fullNamePlaceholder}
             value={fullName}
             onChangeText={setFullName}
             leftIcon="person-outline"
             error={errors.fullName}
           />
           <Input
-            label="Phone Number"
-            placeholder="+880 1XXX XXXXXX"
+            label={t.phoneNumber}
+            placeholder={t.phonePlaceholder}
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
@@ -106,15 +108,15 @@ export default function RegisterDetailsScreen() {
           {isVendor && (
             <>
               <Input
-                label="Business Name"
-                placeholder="e.g. Spice Garden Catering"
+                label={t.businessName}
+                placeholder={t.businessNamePlaceholder}
                 value={businessName}
                 onChangeText={setBusinessName}
                 leftIcon="storefront-outline"
                 error={errors.businessName}
               />
 
-              <Text style={styles.sectionLabel}>Cuisine Types</Text>
+              <Text style={styles.sectionLabel}>{t.cuisineTypes}</Text>
               <View style={styles.pillRow}>
                 {CUISINE_OPTIONS.map((c) => (
                   <TouchableOpacity
@@ -129,7 +131,7 @@ export default function RegisterDetailsScreen() {
                 ))}
               </View>
 
-              <Text style={styles.sectionLabel}>Event Categories</Text>
+              <Text style={styles.sectionLabel}>{t.eventCategories}</Text>
               <View style={styles.pillRow}>
                 {CATEGORY_OPTIONS.map((c) => (
                   <TouchableOpacity
@@ -147,7 +149,7 @@ export default function RegisterDetailsScreen() {
           )}
 
           <Button
-            label="Create Account"
+            label={t.createAccount}
             onPress={handleRegister}
             loading={loading}
             fullWidth

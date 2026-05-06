@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/lib/auth';
+import { useLanguage } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
@@ -29,6 +30,7 @@ interface VendorData {
 
 export default function VendorProfileScreen() {
   const { profile, user, signOut, refreshProfile } = useAuth();
+  const { t } = useLanguage();
 
   const [vendor, setVendor] = useState<VendorData | null>(null);
   const [editing, setEditing] = useState(false);
@@ -95,13 +97,13 @@ export default function VendorProfileScreen() {
 
   const handleSignOut = () => {
     if (Platform.OS === 'web') {
-      if (typeof window !== 'undefined' && window.confirm('Are you sure you want to sign out?')) {
+      if (typeof window !== 'undefined' && window.confirm(t.signOutConfirm)) {
         signOut();
       }
     } else {
-      Alert.alert('Sign Out', 'Are you sure?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign Out', style: 'destructive', onPress: () => signOut() },
+      Alert.alert(t.signOut, t.signOutConfirm, [
+        { text: t.cancel, style: 'cancel' },
+        { text: t.signOut, style: 'destructive', onPress: () => signOut() },
       ]);
     }
   };
@@ -110,7 +112,7 @@ export default function VendorProfileScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView style={styles.root} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.screenTitle}>My Profile</Text>
+          <Text style={styles.screenTitle}>{t.myProfile}</Text>
           <TouchableOpacity onPress={handleSignOut}>
             <Ionicons name="log-out-outline" size={22} color={Colors.danger} />
           </TouchableOpacity>
@@ -123,7 +125,7 @@ export default function VendorProfileScreen() {
           <Text style={styles.ownerName}>{profile?.full_name}</Text>
           <View style={styles.statusRow}>
             <Badge
-              label={vendor?.is_approved ? 'Approved' : 'Pending Approval'}
+              label={vendor?.is_approved ? t.approved : t.pendingApproval}
               variant={vendor?.is_approved ? 'approved' : 'pending'}
             />
           </View>
@@ -133,25 +135,25 @@ export default function VendorProfileScreen() {
         <Card style={styles.card}>
           {editing ? (
             <>
-              <Input label="Full Name" value={fullName} onChangeText={setFullName} leftIcon="person-outline" />
-              <Input label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" autoCapitalize="none" leftIcon="call-outline" />
-              <Input label="Business Name" value={businessName} onChangeText={setBusinessName} leftIcon="storefront-outline" />
-              <Input label="Description" value={description} onChangeText={setDescription} multiline numberOfLines={3} leftIcon="document-text-outline" />
-              <LocationPicker label="Location / Address" value={location} onChange={setLocation} />
+              <Input label={t.fullNameLabel} value={fullName} onChangeText={setFullName} leftIcon="person-outline" />
+              <Input label={t.phoneLabel} value={phone} onChangeText={setPhone} keyboardType="phone-pad" autoCapitalize="none" leftIcon="call-outline" />
+              <Input label={t.businessLabel} value={businessName} onChangeText={setBusinessName} leftIcon="storefront-outline" />
+              <Input label={t.descriptionLabel} value={description} onChangeText={setDescription} multiline numberOfLines={3} leftIcon="document-text-outline" />
+              <LocationPicker label={t.locationLabel} value={location} onChange={setLocation} />
               <View style={styles.editActions}>
-                <Button label="Cancel" variant="secondary" onPress={() => setEditing(false)} style={{ flex: 1 }} />
-                <Button label="Save" onPress={handleSave} loading={saving} style={{ flex: 1 }} />
+                <Button label={t.cancel} variant="secondary" onPress={() => setEditing(false)} style={{ flex: 1 }} />
+                <Button label={t.save} onPress={handleSave} loading={saving} style={{ flex: 1 }} />
               </View>
             </>
           ) : (
             <>
               {[
-                { icon: 'mail-outline', label: 'Email', value: user?.email },
-                { icon: 'person-outline', label: 'Full Name', value: profile?.full_name },
-                { icon: 'call-outline', label: 'Phone', value: profile?.phone },
-                { icon: 'storefront-outline', label: 'Business', value: vendor?.business_name },
-                { icon: 'document-text-outline', label: 'Description', value: vendor?.description },
-                { icon: 'location-outline', label: 'Location', value: vendor?.location },
+                { icon: 'mail-outline', label: t.emailLabel, value: user?.email },
+                { icon: 'person-outline', label: t.fullNameLabel, value: profile?.full_name },
+                { icon: 'call-outline', label: t.phoneLabel, value: profile?.phone },
+                { icon: 'storefront-outline', label: t.businessLabel, value: vendor?.business_name },
+                { icon: 'document-text-outline', label: t.descriptionLabel, value: vendor?.description },
+                { icon: 'location-outline', label: t.locationLabel, value: vendor?.location },
               ].map((row, i, arr) => (
                 <React.Fragment key={row.label}>
                   <View style={styles.infoRow}>
@@ -166,13 +168,13 @@ export default function VendorProfileScreen() {
               ))}
               <TouchableOpacity style={styles.editBtn} onPress={() => setEditing(true)}>
                 <Ionicons name="pencil-outline" size={16} color={Colors.primary} />
-                <Text style={styles.editBtnText}>Edit Profile</Text>
+                <Text style={styles.editBtnText}>{t.editProfile}</Text>
               </TouchableOpacity>
             </>
           )}
         </Card>
 
-        <Button label="Sign Out" variant="danger" onPress={handleSignOut} fullWidth style={{ marginTop: Spacing.sm }} />
+        <Button label={t.signOut} variant="danger" onPress={handleSignOut} fullWidth style={{ marginTop: Spacing.sm }} />
         <View style={{ height: Spacing.xxl }} />
       </ScrollView>
     </SafeAreaView>

@@ -10,8 +10,10 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useLanguage } from '@/lib/i18n';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import LanguageSwitch from '@/components/ui/LanguageSwitch';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
 
 export type RegisterData = {
@@ -26,6 +28,7 @@ export const getPendingRegister = () => _pendingRegister;
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const { t } = useLanguage();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,11 +38,11 @@ export default function RegisterScreen() {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!email.trim()) e.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(email)) e.email = 'Enter a valid email';
-    if (!password) e.password = 'Password is required';
-    else if (password.length < 6) e.password = 'At least 6 characters';
-    if (confirm !== password) e.confirm = 'Passwords do not match';
+    if (!email.trim()) e.email = t.emailRequired;
+    else if (!/\S+@\S+\.\S+/.test(email)) e.email = t.enterValidEmail;
+    if (!password) e.password = t.passwordRequired;
+    else if (password.length < 6) e.password = t.atLeast6Chars;
+    if (confirm !== password) e.confirm = t.passwordsNoMatch;
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -56,15 +59,18 @@ export default function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {/* Back */}
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color={Colors.text} />
-        </TouchableOpacity>
+        {/* Back + Language Row */}
+        <View style={styles.topRow}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={22} color={Colors.text} />
+          </TouchableOpacity>
+          <LanguageSwitch />
+        </View>
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Step 1 of 2 — Account details</Text>
+          <Text style={styles.title}>{t.createAccount}</Text>
+          <Text style={styles.subtitle}>{t.step1of2}</Text>
         </View>
 
         {/* Role Selector */}
@@ -82,10 +88,10 @@ export default function RegisterScreen() {
                 color={role === r ? Colors.primary : Colors.textMuted}
               />
               <Text style={[styles.roleLabel, role === r && styles.roleLabelActive]}>
-                {r === 'customer' ? 'Customer' : 'Caterer'}
+                {r === 'customer' ? t.customer : t.caterer}
               </Text>
               <Text style={styles.roleDesc}>
-                {r === 'customer' ? 'Browse & book' : 'Manage & sell'}
+                {r === 'customer' ? t.browseAndBook : t.manageAndSell}
               </Text>
             </TouchableOpacity>
           ))}
@@ -94,8 +100,8 @@ export default function RegisterScreen() {
         {/* Form */}
         <View style={styles.form}>
           <Input
-            label="Email"
-            placeholder="you@example.com"
+            label={t.email}
+            placeholder={t.emailPlaceholder}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -104,8 +110,8 @@ export default function RegisterScreen() {
             error={errors.email}
           />
           <Input
-            label="Password"
-            placeholder="Min. 6 characters"
+            label={t.password}
+            placeholder={t.minChars}
             value={password}
             onChangeText={setPassword}
             secureTextEntry
@@ -113,8 +119,8 @@ export default function RegisterScreen() {
             error={errors.password}
           />
           <Input
-            label="Confirm Password"
-            placeholder="Repeat your password"
+            label={t.confirmPassword}
+            placeholder={t.confirmPasswordPlaceholder}
             value={confirm}
             onChangeText={setConfirm}
             secureTextEntry
@@ -122,12 +128,12 @@ export default function RegisterScreen() {
             error={errors.confirm}
           />
 
-          <Button label="Next →" onPress={handleNext} fullWidth size="lg" style={styles.btn} />
+          <Button label={t.nextArrow} onPress={handleNext} fullWidth size="lg" style={styles.btn} />
         </View>
 
         <TouchableOpacity style={styles.loginLink} onPress={() => router.replace('/(auth)/login')}>
           <Text style={styles.loginText}>
-            Already have an account? <Text style={styles.loginHighlight}>Sign in</Text>
+            {t.alreadyHaveAccount} <Text style={styles.loginHighlight}>{t.signIn}</Text>
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -139,7 +145,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   scroll: { flexGrow: 1, padding: Spacing.lg, paddingTop: Spacing.xxl },
 
-  backBtn: { marginBottom: Spacing.lg },
+  topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.lg },
+  backBtn: {},
   header: { marginBottom: Spacing.lg },
   title: { fontSize: FontSize.xxxl, fontWeight: FontWeight.bold, color: Colors.text },
   subtitle: { color: Colors.textMuted, fontSize: FontSize.sm, marginTop: Spacing.xs },
@@ -165,7 +172,7 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
   },
   roleLabelActive: { color: Colors.primary },
-  roleDesc: { fontSize: FontSize.xs, color: Colors.textMuted },
+  roleDesc: { fontSize: FontSize.xs, color: Colors.textMuted, textAlign: 'center' },
 
   form: {
     backgroundColor: Colors.surface,

@@ -8,10 +8,12 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/lib/auth';
+import { useLanguage } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -26,6 +28,8 @@ interface Booking {
   event_type: string;
   special_requests: string | null;
   status: BookingStatus;
+  payment_status: 'unpaid' | 'paid' | 'refunded';
+  payment_method: 'cod' | 'online';
   total_price: number;
   created_at: string;
   profiles: { full_name: string | null; phone: string | null } | null;
@@ -41,6 +45,7 @@ const TABS: { label: string; value: BookingStatus | 'all' }[] = [
 
 export default function VendorBookingsScreen() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [filtered, setFiltered] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,10 +53,11 @@ export default function VendorBookingsScreen() {
   const [activeTab, setActiveTab] = useState<'all' | BookingStatus>('all');
 
   const fetchBookings = async () => {
+    if (!user?.id) { setLoading(false); setRefreshing(false); return; }
     const { data } = await supabase
       .from('bookings')
       .select(`*, profiles(full_name, phone), packages(name)`)
-      .eq('vendor_id', user?.id)
+      .eq('vendor_id', user.id)
       .order('created_at', { ascending: false });
     if (data) {
       setBookings(data as Booking[]);
@@ -65,10 +71,10 @@ export default function VendorBookingsScreen() {
     setFiltered(tab === 'all' ? data : data.filter((b) => b.status === tab));
   };
 
-  useEffect(() => { fetchBookings(); }, []);
+  useEffect(() => { if (user?.id) fetchBookings(); }, [user?.id]);
   useEffect(() => { applyFilter(bookings, activeTab); }, [activeTab, bookings]);
 
-  const onRefresh = useCallback(() => { setRefreshing(true); fetchBookings(); }, []);
+  const onRefresh = useCallback(() => { setRefreshing(true); fetchBookings(); }, [user?.id]);
 
   const updateStatus = async (id: string, status: BookingStatus) => {
     const { error } = await supabase.from('bookings').update({ status }).eq('id', id);
@@ -76,18 +82,50 @@ export default function VendorBookingsScreen() {
     else fetchBookings();
   };
 
-  const handleAccept = (id: string) => {
-    Alert.alert('Accept Booking', 'Accept this booking request?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Accept', onPress: () => updateStatus(id, 'accepted') },
-    ]);
+  const confirmReject = (id: string, paymentMethod: string, paymentStatus: string) => {
+    const msg = 'Reject this booking?' +
+      (paymentMethod === 'online' && paymentStatus === 'paid'
+        ? ' The digital payment will be automatically refunded.'
+        : '');
+
+    if (Platform.OS === 'web') {
+      if (!window.confirm(msg)) return;
+      setLoading(true);
+      const updates: any = { status: 'rejected' };
+      if (paymentMethod === 'online' && paymentStatus === 'paid') updates.payment_status = 'refunded';
+      supabase.from('bookings').update(updates).eq('id', id).then(() => {
+        fetchBookings();
+        setLoading(false);
+      });
+    } else {
+      Alert.alert(t.reject, msg, [
+        { text: t.cancel, style: 'cancel' },
+        {
+          text: t.reject,
+          style: 'destructive',
+          onPress: async () => {
+            setLoading(true);
+            const updates: any = { status: 'rejected' };
+            if (paymentMethod === 'online' && paymentStatus === 'paid') updates.payment_status = 'refunded';
+            const { error } = await supabase.from('bookings').update(updates).eq('id', id);
+            if (!error) await fetchBookings();
+            setLoading(false);
+          },
+        },
+      ]);
+    }
   };
 
-  const handleReject = (id: string) => {
-    Alert.alert('Reject Booking', 'Reject this booking request?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Reject', style: 'destructive', onPress: () => updateStatus(id, 'rejected') },
-    ]);
+  const confirmAccept = (id: string) => {
+    if (Platform.OS === 'web') {
+      if (!window.confirm('Accept this booking request?')) return;
+      updateStatus(id, 'accepted');
+    } else {
+      Alert.alert(t.accept, 'Accept this booking request?', [
+        { text: t.cancel, style: 'cancel' },
+        { text: t.accept, onPress: () => updateStatus(id, 'accepted') },
+      ]);
+    }
   };
 
   const renderBooking = ({ item }: { item: Booking }) => (
@@ -113,6 +151,10 @@ export default function VendorBookingsScreen() {
           <Ionicons name="pricetag-outline" size={14} color={Colors.primary} />
           <Text style={styles.detailText}>{item.event_type}</Text>
         </View>
+        <View style={styles.detailItem}>
+          <Ionicons name="wallet-outline" size={14} color={Colors.primary} />
+          <Text style={styles.detailText}>{item.payment_method === 'cod' ? 'Cash on Delivery' : 'Online Payment'}</Text>
+        </View>
         {item.profiles?.phone && (
           <View style={styles.detailItem}>
             <Ionicons name="call-outline" size={14} color={Colors.primary} />
@@ -129,11 +171,16 @@ export default function VendorBookingsScreen() {
       )}
 
       <View style={styles.cardFooter}>
-        <Text style={styles.price}>৳{item.total_price?.toLocaleString()}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+          <Text style={styles.price}>৳{item.total_price?.toLocaleString()}</Text>
+          {item.payment_status === 'paid' && (
+            <Badge label="Paid" variant="success" />
+          )}
+        </View>
         {item.status === 'pending' && (
           <View style={styles.actions}>
-            <Button label="Reject" variant="danger" size="sm" onPress={() => handleReject(item.id)} />
-            <Button label="Accept" size="sm" onPress={() => handleAccept(item.id)} />
+            <Button label={t.reject} variant="danger" size="sm" onPress={() => confirmReject(item.id, item.payment_method, item.payment_status)} />
+            <Button label={t.accept} variant="primary" size="sm" onPress={() => confirmAccept(item.id)} />
           </View>
         )}
         {item.status === 'accepted' && (
@@ -146,7 +193,7 @@ export default function VendorBookingsScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.root}>
-        <Text style={styles.screenTitle}>Bookings</Text>
+        <Text style={styles.screenTitle}>{t.bookings}</Text>
 
         {/* Tab Filter */}
         <View style={styles.tabBar}>
@@ -168,7 +215,7 @@ export default function VendorBookingsScreen() {
         ) : filtered.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="calendar-outline" size={60} color={Colors.textMuted} />
-            <Text style={styles.emptyTitle}>No bookings</Text>
+            <Text style={styles.emptyTitle}>{t.noBookingsVendor}</Text>
           </View>
         ) : (
           <FlatList

@@ -16,13 +16,16 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/lib/auth';
+import { useLanguage } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import Avatar from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import StarRating from '@/components/ui/StarRating';
 import LocationPicker from '@/components/ui/LocationPicker';
+import LanguageSwitch from '@/components/ui/LanguageSwitch';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
+import VendorMap, { MapVendor } from '@/components/ui/VendorMap';
 
 const CATEGORIES = ['All', 'Wedding', 'Birthday', 'Corporate', 'Home Party', 'Outdoor Event'];
 
@@ -36,6 +39,8 @@ interface Vendor {
   rating: number;
   total_reviews: number;
   location: string | null;
+  latitude: number | null;
+  longitude: number | null;
   min_price?: number;
   max_price?: number;
   packages?: { name: string; description: string | null }[];
@@ -59,6 +64,7 @@ const DEFAULT_FILTER: FilterState = {
 
 export default function CustomerHomeScreen() {
   const { profile } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
 
   const [vendors, setVendors] = useState<Vendor[]>([]);
@@ -70,6 +76,18 @@ export default function CustomerHomeScreen() {
   const [filterVisible, setFilterVisible] = useState(false);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTER);
   const [pendingFilters, setPendingFilters] = useState<FilterState>(DEFAULT_FILTER);
+  const [mapVisible, setMapVisible] = useState(false);
+
+  const mapVendors: MapVendor[] = vendors
+    .filter((v) => v.latitude != null && v.longitude != null)
+    .map((v) => ({
+      id: v.id,
+      name: v.business_name,
+      location: v.location ?? '',
+      latitude: v.latitude!,
+      longitude: v.longitude!,
+      rating: v.rating,
+    }));
 
   const fetchVendors = async () => {
     const { data, error } = await supabase
@@ -145,12 +163,7 @@ export default function CustomerHomeScreen() {
     setFilterVisible(false);
   };
 
-  const greeting = () => {
-    const h = new Date().getHours();
-    if (h < 12) return 'Good morning';
-    if (h < 18) return 'Good afternoon';
-    return 'Good evening';
-  };
+
 
   const featured = vendors.filter((v) => v.rating >= 4.5).slice(0, 5);
 
@@ -163,20 +176,23 @@ export default function CustomerHomeScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>{greeting()},</Text>
-            <Text style={styles.name}>{profile?.full_name?.split(' ')[0] ?? 'Foodie'} 👋</Text>
+          <View style={styles.headerLeft}>
+            <Text style={styles.greeting}>{t.hello},</Text>
+            <Text style={styles.name}>{profile?.full_name?.split(' ')[0] ?? t.foodie} 👋</Text>
           </View>
-          <Avatar uri={profile?.avatar_url} name={profile?.full_name} size={44} />
+          <View style={styles.headerRight}>
+            <LanguageSwitch />
+            <Avatar uri={profile?.avatar_url} name={profile?.full_name} size={44} />
+          </View>
         </View>
 
-        {/* Search + Filter Row */}
+        {/* Search + Filter + Map Row */}
         <View style={styles.searchRow}>
-          <View style={styles.searchBar}>
+          <View style={[styles.searchBar, { flex: 1 }]}>
             <Ionicons name="search-outline" size={18} color={Colors.textMuted} />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search caterers, cuisines, location..."
+              placeholder={t.searchPlaceholder}
               placeholderTextColor={Colors.textMuted}
               value={search}
               onChangeText={setSearch}
@@ -187,6 +203,15 @@ export default function CustomerHomeScreen() {
               </TouchableOpacity>
             )}
           </View>
+
+          {/* Map View button */}
+          <TouchableOpacity
+            style={styles.mapBtn}
+            onPress={() => setMapVisible(true)}
+          >
+            <Ionicons name="map-outline" size={20} color={Colors.textInverse} />
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
             onPress={() => { setPendingFilters(filters); setFilterVisible(true); }}
@@ -199,6 +224,36 @@ export default function CustomerHomeScreen() {
             )}
           </TouchableOpacity>
         </View>
+
+        {/* Map Modal */}
+        <Modal visible={mapVisible} animationType="slide" onRequestClose={() => setMapVisible(false)}>
+          <View style={{ flex: 1, backgroundColor: Colors.background }}>
+            <View style={styles.mapModalHeader}>
+              <View>
+                <Text style={styles.mapModalTitle}>Caterer Map View</Text>
+                <Text style={{ fontSize: 12, color: Colors.textMuted, marginTop: 2 }}>All vendors across Dhaka</Text>
+              </View>
+              <TouchableOpacity onPress={() => setMapVisible(false)} style={styles.mapModalClose}>
+                <Ionicons name="close" size={24} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1, margin: Spacing.md }}>
+              <VendorMap
+                vendors={mapVendors}
+                onVendorPress={(id: string) => {
+                  setMapVisible(false);
+                  router.push(`/(customer)/caterer/${id}`);
+                }}
+              />
+            </View>
+            <View style={styles.mapHint}>
+              <Ionicons name="information-circle-outline" size={14} color={Colors.textMuted} />
+              <Text style={styles.mapHintText}>
+                {mapVendors.length} caterers shown · Tap a pin then "View Caterer"
+              </Text>
+            </View>
+          </View>
+        </Modal>
 
         {/* Categories */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryRow}>
@@ -217,7 +272,7 @@ export default function CustomerHomeScreen() {
         {featured.length > 0 && activeCategory === 'All' && !search && (
           <>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>⭐ Top Rated</Text>
+              <Text style={styles.sectionTitle}>{t.topRated}</Text>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.featuredRow}>
               {featured.map((v) => (
@@ -255,9 +310,9 @@ export default function CustomerHomeScreen() {
         {/* All Vendors */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>
-            {activeCategory === 'All' ? 'All Caterers' : activeCategory}
+            {activeCategory === 'All' ? t.allCaterers : activeCategory}
           </Text>
-          <Text style={styles.sectionCount}>{filtered.length} found</Text>
+          <Text style={styles.sectionCount}>{filtered.length} {t.found}</Text>
         </View>
 
         {loading ? (
@@ -265,10 +320,10 @@ export default function CustomerHomeScreen() {
         ) : filtered.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="restaurant-outline" size={52} color={Colors.textMuted} />
-            <Text style={styles.emptyText}>No caterers found</Text>
-            <Text style={styles.emptySubText}>Try adjusting your search or filters</Text>
+            <Text style={styles.emptyText}>{t.noCaterersFound}</Text>
+            <Text style={styles.emptySubText}>{t.tryAdjusting}</Text>
             {activeFilterCount > 0 && (
-              <Button label="Clear Filters" variant="ghost" size="sm" onPress={resetFilters} style={{ marginTop: Spacing.md }} />
+              <Button label={t.clearFilters} variant="ghost" size="sm" onPress={resetFilters} style={{ marginTop: Spacing.md }} />
             )}
           </View>
         ) : (
@@ -288,7 +343,7 @@ export default function CustomerHomeScreen() {
       <Modal visible={filterVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setFilterVisible(false)}>
         <SafeAreaView style={styles.filterModal} edges={['top']}>
           <View style={styles.filterHeader}>
-            <Text style={styles.filterTitle}>Filter & Sort</Text>
+            <Text style={styles.filterTitle}>{t.filterAndSort}</Text>
             <TouchableOpacity onPress={() => setFilterVisible(false)}>
               <Ionicons name="close" size={24} color={Colors.textMuted} />
             </TouchableOpacity>
@@ -296,11 +351,11 @@ export default function CustomerHomeScreen() {
 
           <ScrollView style={styles.filterBody} contentContainerStyle={{ padding: Spacing.lg }}>
             {/* Sort */}
-            <Text style={styles.filterLabel}>Sort By</Text>
+            <Text style={styles.filterLabel}>{t.sortBy}</Text>
             <View style={styles.pillRow}>
               {[
-                { label: 'Top Rated', value: 'rating' },
-                { label: 'Newest', value: 'newest' },
+                { label: t.topRatedSort, value: 'rating' },
+                { label: t.newest, value: 'newest' },
               ].map((s) => (
                 <TouchableOpacity
                   key={s.value}
@@ -315,7 +370,7 @@ export default function CustomerHomeScreen() {
             </View>
 
             {/* Location */}
-            <Text style={styles.filterLabel}>Location</Text>
+            <Text style={styles.filterLabel}>{t.location}</Text>
             <LocationPicker
               placeholder="e.g. Dhaka, Gulshan..."
               value={pendingFilters.location}
@@ -323,7 +378,7 @@ export default function CustomerHomeScreen() {
             />
 
             {/* Minimum Rating */}
-            <Text style={styles.filterLabel}>Minimum Rating</Text>
+            <Text style={styles.filterLabel}>{t.minimumRating}</Text>
             <View style={styles.ratingRow}>
               {[0, 1, 2, 3, 4, 5].map((r) => (
                 <TouchableOpacity
@@ -332,7 +387,7 @@ export default function CustomerHomeScreen() {
                   onPress={() => setPendingFilters({ ...pendingFilters, minRating: r })}
                 >
                   <Text style={[styles.ratingBtnText, pendingFilters.minRating === r && styles.ratingBtnTextActive]}>
-                    {r === 0 ? 'Any' : `${r}★+`}
+                    {r === 0 ? t.any : `${r}★+`}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -340,8 +395,8 @@ export default function CustomerHomeScreen() {
           </ScrollView>
 
           <View style={styles.filterActions}>
-            <Button label="Reset" variant="secondary" onPress={resetFilters} style={{ flex: 1 }} />
-            <Button label="Apply Filters" onPress={applyFilters} style={{ flex: 2 }} />
+            <Button label={t.reset} variant="secondary" onPress={resetFilters} style={{ flex: 1 }} />
+            <Button label={t.applyFilters} onPress={applyFilters} style={{ flex: 2 }} />
           </View>
         </SafeAreaView>
       </Modal>
@@ -406,6 +461,8 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
   },
+  headerLeft: { flex: 1 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   greeting: { fontSize: FontSize.sm, color: Colors.textMuted },
   name: { fontSize: FontSize.xxl, fontWeight: FontWeight.bold, color: Colors.text },
 
@@ -439,6 +496,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+  },
+  mapBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filterBtnActive: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   filterBadge: {
@@ -615,4 +680,34 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.surfaceBorder,
   },
+
+  // Map Modal
+  mapModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.lg,
+    paddingTop: Spacing.xl,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.surfaceBorder,
+  },
+  mapModalTitle: {
+    fontSize: FontSize.xl,
+    fontWeight: FontWeight.bold,
+    color: Colors.text,
+  },
+  mapModalClose: {
+    padding: Spacing.xs,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.surfaceElevated,
+  },
+  mapHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    padding: Spacing.md,
+    paddingBottom: Spacing.lg,
+    justifyContent: 'center',
+  },
+  mapHintText: { color: Colors.textMuted, fontSize: FontSize.xs },
 });

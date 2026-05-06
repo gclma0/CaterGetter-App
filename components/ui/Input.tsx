@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ViewStyle,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
@@ -21,9 +22,11 @@ interface InputProps {
   error?: string;
   multiline?: boolean;
   numberOfLines?: number;
+  maxLength?: number;
   editable?: boolean;
   style?: ViewStyle;
   leftIcon?: keyof typeof Ionicons.glyphMap;
+  isDate?: boolean;
 }
 
 export default function Input({
@@ -37,9 +40,11 @@ export default function Input({
   error,
   multiline = false,
   numberOfLines = 1,
+  maxLength,
   editable = true,
   style,
   leftIcon,
+  isDate = false,
 }: InputProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -63,21 +68,42 @@ export default function Input({
             style={styles.leftIcon}
           />
         )}
-        <TextInput
-          style={[styles.input, multiline && styles.multiline]}
-          placeholder={placeholder}
-          placeholderTextColor={Colors.textMuted}
-          value={value}
-          onChangeText={onChangeText}
-          secureTextEntry={secureTextEntry && !showPassword}
-          keyboardType={keyboardType}
-          autoCapitalize={autoCapitalize}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          multiline={multiline}
-          numberOfLines={numberOfLines}
-          editable={editable}
-        />
+        {isDate && Platform.OS === 'web' ? (
+          <input
+            type="date"
+            value={value}
+            onChange={(e: any) => onChangeText(e.target.value)}
+            disabled={!editable}
+            style={{
+              flex: 1,
+              color: Colors.text,
+              fontSize: 16,
+              paddingTop: 12,
+              paddingBottom: 12,
+              backgroundColor: 'transparent',
+              border: 'none',
+              outline: 'none',
+              fontFamily: 'inherit',
+            } as any}
+          />
+        ) : (
+          <TextInput
+            style={[styles.input, multiline && styles.multiline]}
+            placeholder={placeholder}
+            placeholderTextColor={Colors.textMuted}
+            value={value}
+            onChangeText={onChangeText}
+            secureTextEntry={secureTextEntry && !showPassword}
+            keyboardType={keyboardType}
+            autoCapitalize={autoCapitalize}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            multiline={multiline}
+            numberOfLines={numberOfLines}
+            maxLength={maxLength}
+            editable={editable}
+          />
+        )}
         {secureTextEntry && (
           <TouchableOpacity onPress={() => setShowPassword((v) => !v)} style={styles.eyeBtn}>
             <Ionicons

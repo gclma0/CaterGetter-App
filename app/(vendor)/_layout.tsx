@@ -1,8 +1,11 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontSize } from '@/constants/theme';
+import { useLanguage } from '@/lib/i18n';
 
 export default function VendorLayout() {
+  const { t } = useLanguage();
+
   return (
     <Tabs
       screenOptions={{
@@ -22,28 +25,28 @@ export default function VendorLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Dashboard',
+          title: t.tabDashboard,
           tabBarIcon: ({ color, size }) => <Ionicons name="grid-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="menu"
         options={{
-          title: 'Menu',
+          title: t.tabMenu,
           tabBarIcon: ({ color, size }) => <Ionicons name="fast-food-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="bookings"
         options={{
-          title: 'Bookings',
+          title: t.tabBookings,
           tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: t.tabProfile,
           tabBarIcon: ({ color, size }) => <Ionicons name="storefront-outline" size={size} color={color} />,
         }}
       />

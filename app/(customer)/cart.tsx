@@ -4,9 +4,11 @@ import {
   Alert, ActivityIndicator, RefreshControl, Modal,
   ScrollView, TextInput,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/lib/auth';
+import { useLanguage } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
@@ -23,6 +25,8 @@ interface Booking {
   event_type: string;
   special_requests: string | null;
   status: BookingStatus;
+  payment_status: 'unpaid' | 'paid' | 'refunded';
+  payment_method: 'cod' | 'online';
   total_price: number;
   created_at: string;
   vendors: { business_name: string; id: string } | null;
@@ -38,6 +42,8 @@ const TABS: { label: string; key: TabKey }[] = [
 
 export default function CartScreen() {
   const { user } = useAuth();
+  const { t } = useLanguage();
+  const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -124,6 +130,7 @@ export default function CartScreen() {
   const renderBooking = ({ item }: { item: Booking }) => {
     const isUpcoming = item.event_date >= today && ['pending', 'accepted'].includes(item.status);
     const canReview = item.status === 'completed' && !reviewedIds.has(item.id);
+    const canPay = ['pending', 'accepted'].includes(item.status) && item.payment_status === 'unpaid' && item.payment_method === 'online';
     const daysUntil = isUpcoming
       ? Math.ceil((new Date(item.event_date).getTime() - Date.now()) / 86400000)
       : null;
@@ -171,6 +178,10 @@ export default function CartScreen() {
               <Ionicons name="pricetag-outline" size={13} color={Colors.primary} />
               <Text style={styles.detailTxt}>{item.event_type}</Text>
             </View>
+            <View style={styles.detailItem}>
+              <Ionicons name="wallet-outline" size={13} color={Colors.primary} />
+              <Text style={styles.detailTxt}>{item.payment_method === 'cod' ? 'Cash on Delivery' : 'Online Payment'}</Text>
+            </View>
           </View>
 
           {item.special_requests && (
@@ -185,6 +196,25 @@ export default function CartScreen() {
             <View style={styles.actions}>
               {item.status === 'pending' && (
                 <Button label="Cancel" variant="danger" size="sm" onPress={() => handleCancel(item.id)} />
+              )}
+              {canPay && (
+                <Button 
+                  label="Pay Now" 
+                  size="sm" 
+                  onPress={() => router.push(`/(customer)/payment/${item.id}?amount=${item.total_price}` as any)} 
+                />
+              )}
+              {item.payment_status === 'paid' && (
+                <View style={styles.reviewedBadge}>
+                  <Ionicons name="checkmark-circle" size={14} color={Colors.success} />
+                  <Text style={styles.reviewedTxt}>Paid</Text>
+                </View>
+              )}
+              {item.payment_status === 'refunded' && (
+                <View style={[styles.reviewedBadge, { backgroundColor: Colors.warningMuted }]}>
+                  <Ionicons name="refresh-circle" size={14} color={Colors.warning} />
+                  <Text style={[styles.reviewedTxt, { color: Colors.warning }]}>Refunded</Text>
+                </View>
               )}
               {canReview && (
                 <Button label="Leave Review" variant="ghost" size="sm" onPress={() => openReview(item)} />
@@ -205,7 +235,7 @@ export default function CartScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.root}>
-        <Text style={styles.screenTitle}>My Bookings</Text>
+        <Text style={styles.screenTitle}>{t.myBookings}</Text>
 
         {/* Tabs */}
         <View style={styles.tabBar}>
@@ -225,9 +255,9 @@ export default function CartScreen() {
         ) : tabData.length === 0 ? (
           <View style={styles.empty}>
             <Ionicons name="calendar-outline" size={60} color={Colors.textMuted} />
-            <Text style={styles.emptyTitle}>No bookings here</Text>
+            <Text style={styles.emptyTitle}>{t.noBookings}</Text>
             <Text style={styles.emptySub}>
-              {activeTab === 'upcoming' ? 'Book a caterer to get started!' : 'Your past bookings will appear here.'}
+              {activeTab === 'upcoming' ? t.noBookingsSubtext : t.noBookingsSubtext}
             </Text>
           </View>
         ) : (

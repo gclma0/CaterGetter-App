@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '@/constants/theme';
 
-type BadgeVariant = 'pending' | 'accepted' | 'rejected' | 'cancelled' | 'completed' | 'approved' | 'info';
+type BadgeVariant = 'pending' | 'accepted' | 'rejected' | 'cancelled' | 'completed' | 'approved' | 'info' | 'success';
 
 interface BadgeProps {
   label: string;
@@ -17,6 +17,7 @@ const variantMap: Record<BadgeVariant, { bg: string; text: string }> = {
   rejected:  { bg: Colors.dangerMuted,  text: Colors.danger },
   cancelled: { bg: Colors.dangerMuted,  text: Colors.danger },
   info:      { bg: Colors.infoMuted,    text: Colors.info },
+  success:   { bg: Colors.successMuted, text: Colors.success },
 };
 
 export default function Badge({ label, variant = 'info' }: BadgeProps) {
